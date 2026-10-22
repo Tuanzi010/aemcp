@@ -1,359 +1,365 @@
-# AE MCP 桥 · aemcp
+# AE MCP Bridge · aemcp
 
-让 AI 直接操作 After Effects —— 读工程、建合成、加图层、调动画、出片，全程不用手点。
+Let AI drive After Effects directly — read projects, build comps, add layers, tune animation, and deliver, without a single click.
 
 [![Telegram](https://img.shields.io/badge/Telegram-DimensionID-26A5E4?logo=telegram&logoColor=white)](https://t.me/DimensionID)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-**143 个工具 · 适配 AE 2021～2026**
+**143 tools · AE 2021–2026** · [中文](README.zh-CN.md)
 
 <details open>
-<summary>自动配置：把这个发给你的 AI</summary>
+<summary>Auto-config: send this to your AI</summary>
 
 ```text
-请帮我安装并配置 AE MCP 桥（aemcp），让 AI 能操作 After Effects。
-先只读检查是否已装 aemcp 扩展、AE 版本、以及客户端已有的 MCP 注册。
-- 没装：运行 AEMCP-Setup.exe 按提示勾选 AE 版本安装；装完在 AE 里打开
-  「窗口 > 扩展 > AE MCP 桥」，面板横幅显示「MCP 桥就绪」。
-- 已装：让用户在 AE 里打开面板，点「复制桥信息」拿到端口和 token。
-接入方式二选一（面板必须保持打开）：
-- HTTP：POST http://127.0.0.1:<端口>/rpc，请求头 X-AEMCP-Token: <token>
-- stdio：node <扩展目录>/mcp/aemcp-mcp.js
-  （扩展目录默认 %APPDATA%\Adobe\CEP\extensions\com.yg.aemcp）
-配置好后调用 ae_status 验证。
+Set up the AE MCP bridge (aemcp) so AI can drive After Effects.
+
+First, read-only check: is aemcp installed, which AE version, existing MCP registrations.
+
+Not installed → run AEMCP-Setup.exe and check the AE versions; then in AE open
+"Window > Extensions > AE MCP Bridge" until the banner reads "MCP bridge ready".
+
+Installed → open the panel and click "Copy bridge info" for port + token.
+
+Pick one transport (panel must stay open):
+· HTTP: POST http://127.0.0.1:<port>/rpc, header X-AEMCP-Token: <token>
+· stdio: node <extension dir>/mcp/aemcp-mcp.js
+  extension dir defaults to %APPDATA%\Adobe\CEP\extensions\com.yg.aemcp
+
+Finish with ae_status to verify.
 ```
 
 </details>
 
-aemcp 是跑在 After Effects 里的一个面板，把正在开的工程接进 MCP。连上之后，Claude Desktop、Codex 这些客户端就能直接读工程、建合成、加图层、调关键帧与表达式、入渲染队列。
+aemcp is a panel that runs inside After Effects and exposes the open project over MCP. Once connected, clients like Claude Desktop and Codex can read the project, build comps, add layers, tune keyframes and expressions, and enqueue renders.
 
-## 能做什么
+## What it does
 
-- **读真实工程**：工程、合成、图层、属性、关键帧、渲染队列、字体、XMP，都能按需读。
-- **执行动画操作**：建合成与图层、写关键帧与缓动、加表达式与效果、蒙版与形状路径、动画预设与模板。
-- **入队 / 导帧 / 打模板**：入渲染队列、导 PNG 单帧、打包 MOGRT 模板。
-- **恢复与回滚**：检查点存 / 还原，出错了能退回去。
-- **版本分层**：工具按 AE 版本自动分层，老版本看不到用不了的工具。
-- **不卡 AE**：串行执行 + 超时保护 + 引擎卡死检测。
+- **Read the real project**: project, comps, layers, properties, keyframes, render queue, fonts, XMP — read on demand.
+- **Run animation operations**: build comps and layers, write keyframes and easing, add expressions and effects, masks and shape paths, presets and templates.
+- **Enqueue / frame / template**: enqueue to render queue, export a PNG frame, package a MOGRT template.
+- **Recover and roll back**: save/revert checkpoints so a mistake can be undone.
+- **Version tiers**: tools are gated by AE version; older versions never see tools they can't run.
+- **Won't stall AE**: serial execution + timeout protection + engine-stuck detection.
 
-## 快速上手
+## Quick start
 
-1. 运行 `AEMCP-Setup.exe`，勾选要装给哪些 AE 版本
-2. 在 AE 里打开 `窗口 > 扩展 > AE MCP 桥`，等横幅变「MCP 桥就绪」
-3. 点面板上的「复制桥信息」，把三行发给 AI
+1. Run `AEMCP-Setup.exe` and check which AE versions to install for
+2. In AE open `Window > Extensions > AE MCP Bridge`, wait for the banner to read "MCP bridge ready"
+3. Click "Copy bridge info" on the panel and send the three lines to your AI
 
-面板可以缩到很小，但必须保持打开——它是桥本身。
+The panel can be tiny, but it must stay open — it *is* the bridge.
 
-## 接到 AI 客户端
+## Connect AI clients
 
-**Claude Desktop**（`claude_desktop_config.json`）：
+**Claude Desktop** (`claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
     "aemcp": {
       "command": "node",
-      "args": ["C:/Users/<你>/AppData/Roaming/Adobe/CEP/extensions/com.yg.aemcp/mcp/aemcp-mcp.js"]
+      "args": ["C:/Users/<you>/AppData/Roaming/Adobe/CEP/extensions/com.yg.aemcp/mcp/aemcp-mcp.js"]
     }
   }
 }
 ```
 
-**Codex CLI**（`~/.codex/config.toml`）：
+**Codex CLI** (`~/.codex/config.toml`):
 
 ```toml
 [mcp_servers.aemcp]
 command = "node"
-args = ["C:/Users/<你>/AppData/Roaming/Adobe/CEP/extensions/com.yg.aemcp/mcp/aemcp-mcp.js"]
+args = ["C:/Users/<you>/AppData/Roaming/Adobe/CEP/extensions/com.yg.aemcp/mcp/aemcp-mcp.js"]
 ```
 
-面板上有两个复制按钮：**复制桥信息**（人读的三行：端口 / token / 地址）、**复制桥 JSON**（直接粘配置）。
+The panel has two copy buttons: **Copy bridge info** (three human-readable lines: port / token / address) and **Copy bridge JSON** (paste straight into config).
 
-## 工具
+## Tools
 
-基础 29 个 + 蒙版 6 + 时间线 3 + 标记 5 + 图层 7 + 关键帧 10 + 表达式诊断 2 + 效果 3 + 合成 9 + 3D 5 + 素材 13 + 路径 5 + 渲染 6 + 文本 4 + 工程 10 + 查看器 2 + 模板 9 + 版本分层 2 = **143 个**（AE 2021 用 133 个）。
+Basics 29 + masks 6 + timeline 3 + markers 5 + layers 7 + keyframes 10 + expression diagnostics 2 + effects 3 + comps 9 + 3D 5 + footage 13 + paths 5 + render 6 + text 4 + project 10 + viewer 2 + templates 9 + version tiers 2 = **143** (AE 2021 uses 133).
 
-### 基础
+### Basics
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_status` | AE 概况：版本、语言、工程文件、项数、活动合成。开工前先调它 |
-| `ae_project` | 列工程里的合成/素材/文件夹：index、id、名字、类型、尺寸、时长、帧率、是否离线 |
-| `ae_comp_list` | 只列合成：尺寸、帧率、时长、图层数、背景色 |
-| `ae_comp_info` | 一个合成的完整信息 + 图层清单 |
-| `ae_comp_create` | 建合成（默认 1920x1080 / 5 秒 / 25fps） |
-| `ae_comp_remove` | 删合成 |
-| `ae_layer_text` | 加文本层，可设字号、颜色、对齐、位置、名字 |
-| `ae_layer_solid` | 加纯色层 |
-| `ae_layer_shape` | 加形状层：rect / ellipse，可设 size、fill、stroke、roundness |
-| `ae_layer_null` | 加空对象（父级控制常用） |
-| `ae_layer_camera` | 加 3D 摄像机 |
-| `ae_layer_info` | 图层全部信息（位置/缩放/不透明度/旋转/锚点、效果清单、文本内容与字体） |
-| `ae_layer_set` | 批量改图层：position / scale / anchor / opacity / rotation / name / enabled / threeD / inPoint / outPoint / blend / parent … |
-| `ae_layer_remove` | 删图层 |
-| `ae_layer_duplicate` | 复制图层 |
-| `ae_layer_stamp` | 给图层写稳定身份戳 `aemcp:xxxx`（AE 2021 没有 Layer.id，跨调用盯层靠它） |
-| `ae_property_get` | 读属性值 + matchName + 关键帧数 + 表达式原文 / 报错 |
-| `ae_property_set` | 给属性赋值（支持 `Effects.<效果>.<参数>` 路径） |
-| `ae_keyframe_set` | 设一组关键帧，可配 ease 与 linear/bezier/hold |
-| `ae_keyframe_clear` | 清关键帧 |
-| `ae_expression_set` | 写表达式，立刻求值回 `expressionError`；支持原文 / 模板（wiggle、loopOut、smooth、bouncePos、springy…）/ 跨层引用 |
-| `ae_expression_clear` | 清表达式 |
-| `ae_effect_add` | 加效果（`ADBE Fill` / `ADBE Gaussian Blur 2` / `ADBE Drop Shadow` / `ADBE Tint`…），可带参数或表达式控件 |
-| `ae_effect_set` | 改效果参数 |
-| `ae_effect_remove` | 删效果 |
-| `ae_render_queue_add` | 把合成加入渲染队列（只入队不渲染） |
-| `ae_exec` | 逃生舱：直接跑一段 ExtendScript |
-| `ae_probe` | 重跑兼容性自检 |
-| `ae_capabilities` | 读能力分层：AE 版本、tier、是否有 Layer.id |
+| `ae_status` | AE overview: version, locale, project file, item count, active comp. Call it first |
+| `ae_project` | List comps/footage/folders: index, id, name, type, dimensions, duration, frame rate, offline flag |
+| `ae_comp_list` | List comps only: size, frame rate, duration, layer count, background |
+| `ae_comp_info` | Full info of one comp + its layer list |
+| `ae_comp_create` | Create comp (default 1920x1080 / 5s / 25fps) |
+| `ae_comp_remove` | Remove comp |
+| `ae_layer_text` | Add text layer with font size, color, alignment, position, name |
+| `ae_layer_solid` | Add solid layer |
+| `ae_layer_shape` | Add shape layer: rect / ellipse, with size, fill, stroke, roundness |
+| `ae_layer_null` | Add null (for parenting control) |
+| `ae_layer_camera` | Add 3D camera |
+| `ae_layer_info` | All layer info (position/scale/opacity/rotation/anchor, effects, text content and font) |
+| `ae_layer_set` | Batch-set layer: position/scale/anchor/opacity/rotation/name/enabled/threeD/inPoint/outPoint/blend/parent… |
+| `ae_layer_remove` | Remove layer |
+| `ae_layer_duplicate` | Duplicate layer |
+| `ae_layer_stamp` | Write a stable identity stamp `aemcp:xxxx` on a layer (AE 2021 has no Layer.id; use this to track layers across calls) |
+| `ae_property_get` | Read property value + matchName + keyframe count + expression (with error) |
+| `ae_property_set` | Set property value (supports `Effects.<effect>.<param>` path) |
+| `ae_keyframe_set` | Set a set of keyframes with ease and linear/bezier/hold |
+| `ae_keyframe_clear` | Clear keyframes |
+| `ae_expression_set` | Write expression, evaluated back as `expressionError`; raw / templates (wiggle, loopOut, smooth, bouncePos, springy…) / cross-layer refs |
+| `ae_expression_clear` | Clear expression |
+| `ae_effect_add` | Add effect (`ADBE Fill` / `ADBE Gaussian Blur 2` / `ADBE Drop Shadow` / `ADBE Tint`…), with params or expression controls |
+| `ae_effect_set` | Change effect params |
+| `ae_effect_remove` | Remove effect |
+| `ae_render_queue_add` | Add comp to render queue (enqueue only, no render) |
+| `ae_exec` | Escape hatch: run raw ExtendScript |
+| `ae_probe` | Re-run compatibility self-check |
+| `ae_capabilities` | Read capability tiers: AE version, tier, has Layer.id |
 
-### 蒙版
+### Masks
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_mask_add` | 加蒙版，可设 mode / shape / inverted / feather / opacity / expansion |
-| `ae_mask_list` | 列蒙版（模式、形状、羽化、不透明度） |
-| `ae_mask_remove` | 删蒙版 |
-| `ae_mask_path_get` | 读蒙版路径（顶点/切线/closed） |
-| `ae_mask_path_set` | 写蒙版路径（`"rect"` / `"ellipse"` / 点数组），带 `atTime` 打关键帧 |
-| `ae_mask_keyframes` | 读/写蒙版属性与关键帧（path / feather / opacity / expansion） |
+| `ae_mask_add` | Add mask with mode/shape/inverted/feather/opacity/expansion |
+| `ae_mask_list` | List masks (mode, shape, feather, opacity) |
+| `ae_mask_remove` | Remove mask |
+| `ae_mask_path_get` | Read mask path (vertices/tangents/closed) |
+| `ae_mask_path_set` | Write mask path (`"rect"` / `"ellipse"` / point array), with `atTime` for keyframes |
+| `ae_mask_keyframes` | Read/write mask props and keyframes (path/feather/opacity/expansion) |
 
-### 时间线 / 工作区
+### Timeline / Work area
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_time_get` | 当前 CTI、时长、帧率、帧长 |
-| `ae_time_set` | 把 CTI 移到指定秒 |
-| `ae_workarea_set` | 设工作区 |
+| `ae_time_get` | Current CTI, duration, frame rate, frame count |
+| `ae_time_set` | Move CTI to a given second |
+| `ae_workarea_set` | Set work area |
 
-### 标记
+### Markers
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_marker_add` | 加标记（合成级 / 图层级），可带 comment / chapter / url / 时长 / 颜色 |
-| `ae_marker_list` | 列标记 |
-| `ae_marker_remove` | 删标记 |
-| `ae_marker_nearest` | 找某时间点最近的标记 |
-| `ae_marker_snap` | CTI 吸附到最近标记 |
+| `ae_marker_add` | Add marker (comp/layer level) with comment/chapter/url/duration/color |
+| `ae_marker_list` | List markers |
+| `ae_marker_remove` | Remove marker |
+| `ae_marker_nearest` | Find nearest marker to a time |
+| `ae_marker_snap` | Snap CTI to nearest marker |
 
-### 图层
+### Layers
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_layer_adjustment` | 加调整层 |
-| `ae_layer_light` | 加灯光层 |
-| `ae_layer_av` | 把素材/合成铺成图层 |
-| `ae_layer_precompose` | 预合成指定图层 |
-| `ae_layer_reorder` | 按锚点层移动图层 |
-| `ae_layer_switch` | 拉伸 / 标签 / 质量 / 帧混合 / 折叠变换 / 保留透明度 / 参考线 / 效果开关 / 环境层 / 自动定向 |
-| `ae_layer_time_remap` | 开启 / 关闭时间重映射 |
+| `ae_layer_adjustment` | Add adjustment layer |
+| `ae_layer_light` | Add light layer |
+| `ae_layer_av` | Lay footage/comp as a layer |
+| `ae_layer_precompose` | Precompose selected layers |
+| `ae_layer_reorder` | Move layer by anchor layer |
+| `ae_layer_switch` | Stretch/label/quality/frame blending/collapse/preserve transparency/guide/effects/environment/auto-orient |
+| `ae_layer_time_remap` | Enable/disable time remapping |
 
-### 关键帧 / 属性
+### Keyframes / Properties
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_keyframe_get` | 读每个关键帧的时间、值、缓动、插值 |
-| `ae_keyframe_ease` | 批量改缓动与插值 |
-| `ae_keyframe_offset` | 整组关键帧平移 |
-| `ae_keyframe_scale_timing` | 时间轴缩放（慢放/快放） |
-| `ae_keyframe_reverse` | 反转关键帧顺序 |
-| `ae_keyframe_copy` | 复制关键帧到另一属性 / 图层 |
-| `ae_keyframe_edit` | 加 / 删关键帧，setValueAtKey，标签（22.6+） |
-| `ae_keyframe_tangent` | 空间 / 时间自动贝塞尔 |
-| `ae_property_separate` | 分离 / 合并位置维度 |
-| `ae_mask_set` | 蒙版颜色 / 锁定 / RotoBezier / 运动模糊 / 羽化衰减 |
+| `ae_keyframe_get` | Read each keyframe's time, value, easing, interpolation |
+| `ae_keyframe_ease` | Batch-edit easing and interpolation |
+| `ae_keyframe_offset` | Shift a group of keyframes |
+| `ae_keyframe_scale_timing` | Scale timing (slow-mo / fast-forward) |
+| `ae_keyframe_reverse` | Reverse keyframe order |
+| `ae_keyframe_copy` | Copy keyframes to another property/layer |
+| `ae_keyframe_edit` | Add/remove keyframes, setValueAtKey, label (22.6+) |
+| `ae_keyframe_tangent` | Spatial/temporal auto-bezier |
+| `ae_property_separate` | Separate/combine position dimensions |
+| `ae_mask_set` | Mask color/locked/RotoBezier/motion blur/feather falloff |
 
-### 表达式与诊断
+### Expressions & diagnostics
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_expression_validate` | 全合成扫描表达式报错 |
-| `ae_property_tree` | 属性树一览（找属性名 / matchName） |
+| `ae_expression_validate` | Scan whole comp for expression errors |
+| `ae_property_tree` | Property tree overview (find names/matchNames) |
 
-### 效果
+### Effects
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_effect_list` | 列图层效果 |
-| `ae_effect_copy` | 效果连同参数复制到另一图层 |
-| `ae_effect_reorder` | 调整效果顺序 |
+| `ae_effect_list` | List layer effects |
+| `ae_effect_copy` | Copy effect with params to another layer |
+| `ae_effect_reorder` | Reorder effects |
 
-### 合成与工程项
+### Comps & items
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_comp_modify` | 改合成尺寸/时长/帧率/底色/像素比/运动模糊/工作区 |
-| `ae_comp_duplicate` | 复制合成 |
-| `ae_comp_check` | 合成体检：离线素材、零长度图层、表达式报错 |
-| `ae_item_activate` | 设活动项 |
-| `ae_item_rename` | 改工程项名字 |
-| `ae_item_remove` | 删工程项 |
-| `ae_comp_motion_blur` | 运动模糊开关 / 采样数 / 快门角度 / 相位 |
-| `ae_export_mogrt` | 导出动态图形模板（.mogrt） |
-| `ae_mogrt_param` | 属性加入 / 移出 MOGRT 控制面板 |
+| `ae_comp_modify` | Change comp size/duration/frame rate/background/pixel aspect/motion blur/work area |
+| `ae_comp_duplicate` | Duplicate comp |
+| `ae_comp_check` | Comp health check: offline footage, zero-length layers, expression errors |
+| `ae_item_activate` | Set active item |
+| `ae_item_rename` | Rename project item |
+| `ae_item_remove` | Remove project item |
+| `ae_comp_motion_blur` | Motion blur on/off/samples/shutter angle/phase |
+| `ae_export_mogrt` | Export motion graphics template (.mogrt) |
+| `ae_mogrt_param` | Add/remove property from MOGRT control panel |
 
-### 3D / 材质 / 相机 / 灯光
+### 3D / Material / Camera / Light
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_3d_info` | 读 3D 概况：渲染器、3D 图层 |
-| `ae_material_options_set` | 改材质：透光/漫反射/镜面/高光/金属、投射阴影、接受阴影/灯光 |
-| `ae_camera_options_set` | 改摄像机：缩放/景深/焦点/光圈/模糊/光圈形状 |
-| `ae_light_options_set` | 改灯光：强度/颜色/锥角/羽化/衰减/半径/阴影 |
-| `ae_comp_renderer_set` | 切换 3D 渲染器（经典 / Cinema 4D） |
+| `ae_3d_info` | Read 3D overview: renderer, 3D layers |
+| `ae_material_options_set` | Set material: light transmission/diffuse/specular/shininess/metal, cast shadows, accept shadows/lights |
+| `ae_camera_options_set` | Set camera: zoom/DOF/focus/aperture/blur/iris shape |
+| `ae_light_options_set` | Set light: intensity/color/cone angle/feather/falloff/radius/shadows |
+| `ae_comp_renderer_set` | Switch 3D renderer (Classic / Cinema 4D) |
 
-### 素材 / 代理 / 归类
+### Footage / Proxy / Organize
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_footage_import` | 导入文件，可设序列/导入方式（footage/comp/placeholder/project） |
-| `ae_footage_import_folder` | 批量导入目录媒体 |
-| `ae_footage_replace` | 替换素材或图层源（可 placeholder / solid，可选修表达式引用） |
-| `ae_footage_missing` | 列离线素材 |
-| `ae_interpretation_set` | 改解释参数：帧率/alpha/场分离/pulldown/循环/像素比，可 guess 自动猜 |
-| `ae_proxy_set` | 设代理（文件 / 纯色） |
-| `ae_proxy_remove` | 移除代理 |
-| `ae_item_organize` | 归类工程项 |
-| `ae_item_set` | 改 comment / label / selected |
-| `ae_footage_reload` | 重载素材源 |
-| `ae_project_font` | 列工程字体 / 替换字体（24.5+） |
+| `ae_footage_import` | Import file with sequence/import-as (footage/comp/placeholder/project) |
+| `ae_footage_import_folder` | Batch import media from a directory |
+| `ae_footage_replace` | Replace footage or layer source (placeholder/solid, optional expression-ref fix) |
+| `ae_footage_missing` | List offline footage |
+| `ae_interpretation_set` | Set interpretation: frame rate/alpha/field separation/pulldown/loop/pixel aspect, with guess |
+| `ae_proxy_set` | Set proxy (file/solid) |
+| `ae_proxy_remove` | Remove proxy |
+| `ae_item_organize` | Organize project items |
+| `ae_item_set` | Set comment/label/selected |
+| `ae_footage_reload` | Reload footage source |
+| `ae_project_font` | List project fonts / replace font (24.5+) |
 
-### 路径与形状算子
+### Paths & shape operators
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_path_create` | 建贝塞尔路径 |
-| `ae_path_get` | 读路径顶点/切线/闭合 |
-| `ae_path_set` | 改路径顶点与切线 |
-| `ae_shape_operator_add` | 加形状算子：repeater/trim/offset/merge/roundCorners/puckerBloat/twist |
-| `ae_shape_operator_set` | 改形状算子参数 |
+| `ae_path_create` | Create bezier path |
+| `ae_path_get` | Read path vertices/tangents/closed |
+| `ae_path_set` | Set path vertices and tangents |
+| `ae_shape_operator_add` | Add shape operator: repeater/trim/offset/merge/roundCorners/puckerBloat/twist |
+| `ae_shape_operator_set` | Set shape operator params |
 
-### 渲染队列
+### Render queue
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_render_queue_list` | 列渲染队列（状态/输出/勾选） |
-| `ae_render_queue_item_set` | 配置队列项：render / 时间跨度 / 输出模板 / 路径 |
-| `ae_render_queue_remove` | 移除队列项 |
-| `ae_render_templates` | 列输出模块与渲染设置模板 |
-| `ae_render_frame` | 导单帧 PNG |
-| `ae_render_queue_control` | 控制渲染：pause / resume / stop |
+| `ae_render_queue_list` | List render queue (status/output/checked) |
+| `ae_render_queue_item_set` | Configure queue item: render/time span/output template/path |
+| `ae_render_queue_remove` | Remove queue item |
+| `ae_render_templates` | List output-module and render-settings templates |
+| `ae_render_frame` | Export single PNG frame |
+| `ae_render_queue_control` | Control render: pause/resume/stop |
 
-### 文本
+### Text
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_text_set` | 改文字样式（字体/字号/填充/描边/行距/字距/对齐等，不改文本内容） |
-| `ae_text_animator_add` | 加文本动画器（带范围选择器，可加 position/opacity/scale 属性） |
-| `ae_text_selector_set` | 改范围选择器起止/偏移/单位/数量/平滑度 |
-| `ae_text_animator_list` | 列动画器与选择器 |
+| `ae_text_set` | Set text style (font/size/fill/stroke/leading/tracking/alignment etc., no text content) |
+| `ae_text_animator_add` | Add text animator (with range selector, plus position/opacity/scale props) |
+| `ae_text_selector_set` | Set range selector start/end/offset/units/amount/smoothness |
+| `ae_text_animator_list` | List animators and selectors |
 
-### 工程管理
+### Project management
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_project_save` | 保存 / 另存 / 关闭工程 |
-| `ae_project_settings` | 位深 / 表达式引擎 / GPU 加速 / 线性混合 / 工具类型 |
-| `ae_project_colorspace` | 工作色彩空间 / gamma / 场景引用补偿 |
-| `ae_project_timecode` | 起始帧 / 时间显示 / 帧计数 / 英尺帧 |
-| `ae_project_xmp` | 读写工程 XMP 元数据 |
-| `ae_project_consolidate` | 合并重复素材 / 移除未用素材 |
-| `ae_project_reduce` | 精简工程（破坏性，先 checkpoint） |
-| `ae_project_autofix` | 批量修正表达式旧属性名 |
-| `ae_app_cache` | 清缓存 / 内存限制 / 禁用渲染开关 |
+| `ae_project_save` | Save / save-as / close project |
+| `ae_project_settings` | Bit depth / expression engine / GPU acceleration / linear blending / tool type |
+| `ae_project_colorspace` | Working color space / gamma / scene-referred compensation |
+| `ae_project_timecode` | Start frame / time display / frame count / feet-frames |
+| `ae_project_xmp` | Read/write project XMP metadata |
+| `ae_project_consolidate` | Consolidate duplicate footage / remove unused footage |
+| `ae_project_reduce` | Reduce project (destructive, checkpoint first) |
+| `ae_project_autofix` | Batch-fix expression property-name drift |
+| `ae_app_cache` | Purge cache / memory limits / disable-render switch |
 
-### 查看器 / 设置
+### Viewer / Settings
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_viewer` | 查看器信息 / 激活 / 视图选项（缩放/通道/曝光/参考线） |
-| `ae_settings` | 读写 app.settings / app.preferences |
+| `ae_viewer` | Viewer info / activate / view options (zoom/channels/exposure/guides) |
+| `ae_settings` | Read/write app.settings / app.preferences |
 
-### 模板 / 编排
+### Templates / Orchestration
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_preset_apply` | 应用 .ffx 动画预设 |
-| `ae_tpl_lower_third` | 生成下三分之一字幕模板 |
-| `ae_tpl_title_card` | 生成标题卡模板 |
-| `ae_tpl_transition` | 生成转场模板 |
-| `ae_tpl_logo_reveal` | 生成 Logo 揭示模板 |
-| `ae_batch` | 一次调用串跑多步（失败即停） |
-| `ae_checkpoint` | 存 / 列工程检查点 |
-| `ae_revert` | 恢复到检查点 |
-| `ae_undo_tip` | 返回手动撤销说明 |
+| `ae_preset_apply` | Apply .ffx animation preset |
+| `ae_tpl_lower_third` | Generate lower-third template |
+| `ae_tpl_title_card` | Generate title-card template |
+| `ae_tpl_transition` | Generate transition template |
+| `ae_tpl_logo_reveal` | Generate logo-reveal template |
+| `ae_batch` | Run multiple steps serially in one call (stop on fail) |
+| `ae_checkpoint` | Save/list project checkpoints |
+| `ae_revert` | Revert to a checkpoint |
+| `ae_undo_tip` | Return manual undo instructions |
 
-### 版本分层
+### Version tiers
 
-| 工具 | 作用 |
+| Tool | Does |
 | --- | --- |
-| `ae_layer_id` | 读原生 Layer.id（AE 2022+） |
-| `ae_layer_by_id` | 按 Layer.id 反查图层（AE 2022+） |
+| `ae_layer_id` | Read native Layer.id (AE 2022+) |
+| `ae_layer_by_id` | Resolve layer by Layer.id (AE 2022+) |
 
-工具描述与参数 schema 都是标准 MCP 格式（`tools/list` 直接读），AI 侧不需要额外提示词。
+Tool descriptions and parameter schemas are standard MCP format (read via `tools/list`); no extra prompt is needed on the AI side.
 
-## 工作原理
+## How it works
 
-AE 2021 不接受任何外部脚本驱动（实测）：
+AE 2021 won't accept any external script drive (tested):
 
-| 方式 | 结果 |
+| Approach | Result |
 | --- | --- |
-| `AfterFX.exe -r script.jsx` | 约 20 秒后自行退出，脚本没执行 |
-| `AfterFX.exe -s "$.evalFile(...)"` | 同上 |
-| 不带参数启动 | 正常 |
+| `AfterFX.exe -r script.jsx` | Exits on its own after ~20s, script never ran |
+| `AfterFX.exe -s "$.evalFile(...)"` | Same |
+| Start without args | Works |
 
-所以只有面板自己能执行 ExtendScript：
+So only the panel itself can execute ExtendScript:
 
 ```
-MCP 客户端 ──stdio──> aemcp-mcp.js ──HTTP──> 面板(CEP) ──evalScript──> host.jsx（AE 主线程）
+MCP client ──stdio──> aemcp-mcp.js ──HTTP──> panel (CEP) ──evalScript──> host.jsx (AE main thread)
 ```
 
-桥只监听 127.0.0.1、带 token，AE 不开就没人能碰你的工程。面板标签被切到后台后，AE 会回收它的引擎、桥随之消失——把面板调出来即可。
+The bridge listens on 127.0.0.1 only, with a token — if AE isn't open, nobody can touch your project. When the panel tab is sent to the background, AE reclaims its engine and the bridge disappears; bring the panel back up.
 
-### 兼容性
+### Compatibility
 
-| AE | CEP | 工具数 | 状态 |
+| AE | CEP | Tools | Status |
 | --- | --- | --- | --- |
 | 2021 (18.0) | 10.1.0 | 133 | ✅ |
-| 2024 (24.5) | 11.5.3 | 135（预期） | ⚠ 未测试 |
+| 2024 (24.5) | 11.5.3 | 135 (expected) | ⚠ untested |
 | 2025 (25.6) | 12.0.1 | 137 | ✅ |
 | 2026 (26.5) | 12.0.1 | 143 | ✅ |
 
+## Bridge & files
 
-## 桥与文件
-
-| 东西 | 位置 |
+| Thing | Where |
 | --- | --- |
-| 扩展 | `%APPDATA%\Adobe\CEP\extensions\com.yg.aemcp\` |
-| 桥描述（端口 + token + pid） | `%TEMP%\AEMCP-bridge.json` |
-| 自检结果 | `%TEMP%\AEMCP-probe.json` |
-| AE 日志 | `%TEMP%\AEMCP-host.log` |
+| Extension | `%APPDATA%\Adobe\CEP\extensions\com.yg.aemcp\` |
+| Bridge descriptor (port + token + pid) | `%TEMP%\AEMCP-bridge.json` |
+| Self-check result | `%TEMP%\AEMCP-probe.json` |
+| AE log | `%TEMP%\AEMCP-host.log` |
 
-HTTP 路由：`GET /health` `GET /ping`、`GET /status`、`GET /ui`（读面板 DOM 自证）、`POST /exec`（原始 ExtendScript）、`POST /rpc`（MCP JSON-RPC）。`/rpc` `/exec` `/ui` 都要求 `X-AEMCP-Token` 头，只监听 127.0.0.1。
+HTTP routes: `GET /health`, `GET /ping`, `GET /status`, `GET /ui` (reads the panel DOM to prove it's alive), `POST /exec` (raw ExtendScript), `POST /rpc` (MCP JSON-RPC). `/rpc`, `/exec`, `/ui` all require the `X-AEMCP-Token` header and listen on 127.0.0.1 only.
 
-## 开发
+## Development
 
 ```
-AEMCP/              扩展源码（= 装到 CEP 的那份）
-  CSXS/             manifest：CSXS 10.0 / AEFT [17.0,99.9]
-  index.html        面板 UI
-  js/panel.js       HTTP 桥 + 面板逻辑
-  js/mcp.js         MCP 服务（143 工具定义与分发）
-  jsx/host.jsx      ExtendScript 执行层（碰 app/project 的代码）
-  mcp/aemcp-mcp.js  stdio ↔ HTTP 搬运工
-  lib/              Adobe CEP 库
-AEMCP-Installer/    安装器 / 卸载器 / 打包内容
-Tools/              开发与验收脚本
+AEMCP/              extension source (what gets installed into CEP)
+  CSXS/             manifest: CSXS 10.0 / AEFT [17.0,99.9]
+  index.html        panel UI
+  js/panel.js       HTTP bridge + panel logic
+  js/mcp.js         MCP service (143 tool definitions and dispatch)
+  jsx/host.jsx      ExtendScript execution layer (code that touches app/project)
+  mcp/aemcp-mcp.js  stdio ↔ HTTP shim
+  lib/              Adobe CEP library
+AEMCP-Installer/    installer / uninstaller / payload
+Tools/              development and verification scripts
 ```
 
-改代码：改 → `check-extendscript.js` + `node --check` → 部署 → 重开面板 → 实测 `aemcp-live-test.js`。
+Change → `check-extendscript.js` + `node --check` → deploy → reopen panel → run `aemcp-live-test.js`.
 
-## 参考
+## Credits
 
-参考了三个开源实现（均 MIT，代码自写）：
+Three open-source implementations were referenced (all MIT, code written from scratch):
 
-- [Dakkshin/after-effects-mcp](https://github.com/Dakkshin/after-effects-mcp)（MIT）—— 外部 MCP server + 文件轮询
-- [JUNKDOGE-JOE/after-effects-mcp](https://github.com/JUNKDOGE-JOE/after-effects-mcp)（MIT）—— MCP server 跑在 CEP Node + HTTP loopback（桥形态受它启发）
-- [ishu86/after-effects-mcp](https://github.com/ishu86/after-effects-mcp)（MIT）—— 工具面覆盖对照
+- [Dakkshin/after-effects-mcp](https://github.com/Dakkshin/after-effects-mcp) (MIT) — external MCP server + file polling
+- [JUNKDOGE-JOE/after-effects-mcp](https://github.com/JUNKDOGE-JOE/after-effects-mcp) (MIT) — MCP server in CEP Node + HTTP loopback (bridge shape inspired by it)
+- [ishu86/after-effects-mcp](https://github.com/ishu86/after-effects-mcp) (MIT) — tool-surface coverage reference
 
-三者的代码都没有进本项目，只是结构与思路参考；各自以 MIT 发布，和本项目的 MIT 相同，互不冲突。
+None of their code was copied — structure and ideas only. Each is MIT, same as this project, so there is no conflict.
+
+This project is also released under the MIT License.
