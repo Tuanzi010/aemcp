@@ -3,7 +3,7 @@
 Let AI drive After Effects directly — read projects, build comps, add layers, tune animation, and deliver, without a single click.
 
 [![Telegram](https://img.shields.io/badge/Telegram-DimensionID-26A5E4?logo=telegram&logoColor=white)](https://t.me/DimensionID)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![License](https://img.shields.io/badge/License-Noncommercial-orange)](LICENSE)
 
 **143 tools · AE 2021–2026** · [中文](README.zh-CN.md)
 
@@ -360,6 +360,6 @@ Three open-source implementations were referenced (all MIT, code written from sc
 - [JUNKDOGE-JOE/after-effects-mcp](https://github.com/JUNKDOGE-JOE/after-effects-mcp) (MIT) — MCP server in CEP Node + HTTP loopback (bridge shape inspired by it)
 - [ishu86/after-effects-mcp](https://github.com/ishu86/after-effects-mcp) (MIT) — tool-surface coverage reference
 
-None of their code was copied — structure and ideas only. Each is MIT, same as this project, so there is no conflict.
+None of their code was copied — structure and ideas only. They are MIT, while this project is non-commercial, so there is no conflict.
 
-This project is also released under the MIT License.
+This project is free for non-commercial use. Commercial use requires prior authorization from the author (see [LICENSE](LICENSE)).

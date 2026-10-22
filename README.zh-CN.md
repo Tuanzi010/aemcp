@@ -3,7 +3,7 @@
 让 AI 直接操作 After Effects —— 读工程、建合成、加图层、调动画、出片，全程不用手点。
 
 [![Telegram](https://img.shields.io/badge/Telegram-DimensionID-26A5E4?logo=telegram&logoColor=white)](https://t.me/DimensionID)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![License](https://img.shields.io/badge/License-Noncommercial-orange)](LICENSE)
 
 **143 个工具 · 适配 AE 2021～2026** · [English](README.md)
 
@@ -361,6 +361,6 @@ Tools/              开发与验收脚本
 - [JUNKDOGE-JOE/after-effects-mcp](https://github.com/JUNKDOGE-JOE/after-effects-mcp)（MIT）—— MCP server 跑在 CEP Node + HTTP loopback（桥形态受它启发）
 - [ishu86/after-effects-mcp](https://github.com/ishu86/after-effects-mcp)（MIT）—— 工具面覆盖对照
 
-三者的代码都没有进本项目，只是结构与思路参考；各自以 MIT 发布，和本项目的 MIT 相同，互不冲突。
+三者的代码都没有进本项目，只是结构与思路参考；它们以 MIT 发布，本项目为非商用许可，互不冲突。
 
-本项目亦以 MIT License 发布。
+本项目非商业使用免费，商业使用需联系作者授权（见 [LICENSE](LICENSE)）。
