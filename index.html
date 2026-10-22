@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>AE MCP 桥</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; }
+  body { margin: 0; padding: 12px; background: #232323; color: #d6d6d6; font-size: 12px; }
+  h3 { margin: 0 0 6px; font-size: 13px; color: #f0f0f0; }
+  .brand { margin: 0 0 10px; font-size: 11px; color: #7a9cc6; letter-spacing: .5px; }
+  .grid { display: grid; grid-template-columns: 76px 1fr; gap: 3px 8px; margin-bottom: 10px; }
+  .k { color: #8d8d8d; }
+  .v { color: #e8e8e8; word-break: break-all; font-family: Consolas, monospace; }
+  .v.ok { color: #7ec97e; } .v.bad { color: #e07070; } .v.warn { color: #d8b45c; }
+  button { padding: 7px 10px; background: #3d6ea5; color: #fff; border: 0; border-radius: 3px;
+    font-size: 12px; cursor: pointer; margin: 0 6px 6px 0; }
+  button:hover { background: #4a7fb8; }
+  button.secondary { background: #4a4a4a; } button.secondary:hover { background: #585858; }
+  button:disabled { background: #414141; color: #888; cursor: default; }
+  #log { margin-top: 8px; padding: 8px; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 3px;
+    height: 190px; overflow-y: auto; font-family: Consolas, monospace; font-size: 11px;
+    white-space: pre-wrap; word-break: break-all; }
+  .ok { color: #7ec97e; } .err { color: #e07070; } .dim { color: #888; } .hi { color: #7a9cc6; }
+  #fatal { display: none; margin: 0 0 10px; padding: 8px 10px; background: #4a1f1f; color: #ffb0b0;
+    border: 1px solid #8a3a3a; border-radius: 3px; font-size: 11px; white-space: pre-wrap;
+    word-break: break-all; }
+  #banner { display: none; margin: 0 0 10px; padding: 8px 10px; border-radius: 3px; font-size: 11px;
+    white-space: pre-wrap; word-break: break-all; }
+  #banner.good { display: block; background: #1f3a1f; color: #b6e6b6; border: 1px solid #3a6a3a; }
+  #banner.bad { display: block; background: #3a2f1f; color: #f0d9a8; border: 1px solid #6a5a3a; }
+  #banner.warn { display: block; background: #2f3340; color: #c9d4e6; border: 1px solid #4a5568; }
+
+  /* 设置区 / 关于区：默认收起，点击展开。 */
+  #setHead, #aboutHead { margin: 4px 0 0; padding: 5px 8px; background: #2c2c2c; border: 1px solid #3a3a3a;
+    border-radius: 3px; color: #b8b8b8; cursor: pointer; user-select: none; font-size: 11px; }
+  #setHead:hover, #aboutHead:hover { background: #343434; }
+  #settings, #about { display: none; padding: 8px 8px 2px; background: #262626; border: 1px solid #3a3a3a;
+    border-top: 0; border-radius: 0 0 3px 3px; }
+  .link { color: #7aa9e0; cursor: pointer; text-decoration: underline; font-family: Consolas, monospace; }
+  .link:hover { color: #9cc4f0; }
+  /* 关于区内容 */
+  .about-desc { color: #cfcfcf; font-size: 11px; line-height: 1.6; margin-bottom: 8px; }
+  .about-k { color: #8d8d8d; font-size: 11px; margin: 7px 0 3px; }
+  .about-v { color: #e8e8e8; font-size: 11px; line-height: 1.6; }
+  /* 新手引导：分步动画弹窗（遮罩淡入 + 卡片上滑 + 每步从右滑入）。Chromium 74 兼容。 */
+  #guideOverlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(6,8,14,0.66);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+    opacity: 0; transition: opacity .22s ease; }
+  #guideOverlay.on { display: flex; opacity: 1; }
+  #guide { width: 88%; max-width: 380px; max-height: 88%; overflow-y: auto;
+    background: linear-gradient(168deg, #20293c 0%, #161b2a 100%);
+    border: 1px solid rgba(126,146,192,0.20); border-radius: 12px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
+    transform: translateY(18px) scale(.97); opacity: 0;
+    transition: transform .28s cubic-bezier(.2,.7,.3,1), opacity .28s ease; }
+  #guideOverlay.on #guide { transform: none; opacity: 1; }
+  #guide::-webkit-scrollbar { display: none; }   /* 步骤内容高度变化时，隐藏会闪出的浅色滚动条 */
+  .guide-accent { height: 3px; background: linear-gradient(90deg, #5b8def, #7c5bf0, #c05bf0); }
+  .guide-body { padding: 15px 16px 14px; }
+  .guide-sub { font-size: 11px; color: #7c93c4; letter-spacing: .8px; margin: 0 0 6px; }
+  .guide-title { font-size: 16px; color: #f4f6fb; font-weight: 600; margin: 0 0 10px; }
+  /* 步骤指示器：N 个圆点，当前步变成长条 */
+  .guide-dots { display: flex; gap: 5px; margin: 0 0 14px; }
+  .guide-dot { height: 6px; width: 6px; border-radius: 3px; background: #3a4356;
+    transition: width .22s ease, background .22s ease; }
+  .guide-dot.on { width: 24px; background: linear-gradient(90deg, #5b8def, #7c5bf0); }
+  /* 每步一个区块，只显示当前步；切换时从右滑入 */
+  .guide-step { display: none; }
+  .guide-step.active { display: block; animation: guideIn .3s ease; }
+  @keyframes guideIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+  .guide-k { color: #e8ecf5; font-size: 13px; font-weight: 600; margin: 0 0 4px; }
+  .guide-v { color: #9aa7bd; font-size: 12px; line-height: 1.65; }
+  .guide-v.ok { color: #7ec97e; }
+  .guide-foot { margin-top: 15px; display: flex; align-items: center; gap: 8px; }
+  .guide-dim { color: #667089; font-size: 11px; margin-left: auto; }
+  #guide button { border-radius: 6px; padding: 7px 13px; }
+  #guide button.bright { background: linear-gradient(90deg, #5b8def, #7c5bf0);
+    box-shadow: 0 2px 12px rgba(124,91,240,0.45); }
+  #guide button.bright:hover { background: linear-gradient(90deg, #6b9af2, #8d6bf5); }
+  /* 标题栏的「?」帮助按钮：点击随时重开引导 */
+  #btnGuideHelp { padding: 1px 8px; margin: 0 0 0 6px; background: #4a4a4a; border-radius: 11px;
+    font-size: 12px; font-weight: 600; line-height: 16px; }
+  #btnGuideHelp:hover { background: #585858; }
+</style>
+</head>
+<body>
+  <div id="fatal"></div>
+  <h3>AE MCP 桥<button id="btnGuideHelp" title="新手引导">?</button></h3>
+  <div class="brand">After Effects · MCP 桥面板 v1.3.0</div>
+  <div id="banner"></div>
+
+  <div id="guideOverlay">
+    <div id="guide">
+      <div class="guide-accent"></div>
+      <div class="guide-body">
+        <div class="guide-sub">连接你的 AI</div>
+        <div class="guide-title" id="guide-title">保持面板打开</div>
+        <div class="guide-dots" id="guide-dots">
+          <span class="guide-dot on"></span><span class="guide-dot"></span><span class="guide-dot"></span><span class="guide-dot"></span>
+        </div>
+        <div class="guide-step active" data-step="1">
+          <div class="guide-k">面板就是桥</div>
+          <div class="guide-v">桥自动起在本机 127.0.0.1；面板一关桥就断。可以缩到最小，但别关。</div>
+        </div>
+        <div class="guide-step" data-step="2">
+          <div class="guide-k">把桥信息发给 AI</div>
+          <div class="guide-v">复制桥信息，直接发给 Claude / Codex，它自己就能连上 MCP。</div>
+          <button id="btnGuideCopyInfo" class="bright" style="margin-top:8px;">复制桥信息</button>
+          <button id="btnGuideCopy" class="secondary" style="margin-top:8px;">复制桥 JSON</button>
+        </div>
+        <div class="guide-step" data-step="3">
+          <div class="guide-k">手动填写</div>
+          <div class="guide-v">客户端要手动配时，把桥 JSON 填进 MCP 配置文件：Claude Desktop 的 claude_desktop_config.json，Codex 的 config.toml。</div>
+          <button id="btnGuideCopyInfo3" class="secondary" style="margin-top:8px;">复制桥信息</button>
+          <button id="btnGuideCopy3" class="bright" style="margin-top:8px;">复制桥 JSON</button>
+        </div>
+        <div class="guide-step" data-step="4">
+          <div class="guide-k">看到已连接</div>
+          <div class="guide-v" id="guide-status">把桥信息发给 AI 后，等面板「AI 连接」行变绿色「已连接」，就能开始了。</div>
+        </div>
+        <div class="guide-foot">
+          <button id="btnGuideSkip" class="secondary">关闭引导</button>
+          <button id="btnGuidePrev" class="secondary" style="display:none;">上一步</button>
+          <button id="btnGuideNext">下一步</button>
+          <button id="btnGuideDone" style="display:none;">开始使用</button>
+          <span class="guide-dim">右上角「?」可随时重开</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="k">CEP API</div><div class="v" id="p-cep">…</div>
+    <div class="k">CEF</div><div class="v" id="p-cef">…</div>
+    <div class="k">Node</div><div class="v" id="p-node">…</div>
+    <div class="k">HTTP 桥</div><div class="v" id="p-http">…</div>
+    <div class="k">AI 连接</div><div class="v" id="p-client">未连接</div>
+    <div class="k">宿主</div><div class="v" id="p-host">…</div>
+    <div class="k">工具</div><div class="v" id="p-tools">…</div>
+    <div class="k">健康</div><div class="v" id="p-health">…</div>
+    <div class="k">结果文件</div><div class="v" id="p-file">…</div>
+  </div>
+
+  <button id="btnProbe">重新探测</button>
+  <button id="btnOpen" class="secondary">打开结果文件</button>
+  <button id="btnCheck" class="secondary">检查引擎</button>
+  <button id="btnCopyInfo" class="secondary">复制桥信息</button>
+  <button id="btnCopy" class="secondary">复制桥 JSON</button>
+
+  <div id="setHead">▸ 设置</div>
+  <div id="settings">
+    <div class="grid">
+      <div class="k">桥端口</div><div class="v" id="s-port">…</div>
+      <div class="k">TG 频道</div><div class="v"><span class="link" id="s-tg">次元の仓库_A</span></div>
+      <div class="k">MCP 客户端</div><div class="v" id="s-mcp">启动后显示端点</div>
+      <div class="k">桥令牌</div><div class="v" id="s-token">启动后显示</div>
+      <div class="k">宿主耗时</div><div class="v" id="s-perf">还没调用过宿主</div>
+    </div>
+  </div>
+
+  <div id="aboutHead">▸ 关于</div>
+  <div id="about">
+    <div class="about-desc">
+      AE MCP 桥是让 AI 客户端（Claude / Codex / Cursor 等）直接操控 After Effects 的桥接面板：
+      它把 MCP 协议里的自然语言指令翻译成 ExtendScript，在 AE 主线程里执行建合成、加图层、调属性、
+      加效果、打关键帧、上表达式、渲染导出等操作，并把工程状态与诊断信息读回给 AI。
+      面板必须保持打开（它在 CEP 的 Node 上下文里跑 MCP 服务，同时是唯一能进 AE 主线程的通道）。
+    </div>
+    <div class="about-k">可调用工具</div>
+    <div class="about-v">
+      合成、图层、属性、关键帧、表达式、效果、蒙版、标记、文本、形状路径、3D 相机灯光、
+      素材导入与代理、渲染队列、文本动画器、工程管理、颜色空间、MOGRT、查看器与设置、
+      模板与预设、检查点与批处理、能力探测与自检
+    </div>
+    <div class="about-k">参考开源项目</div>
+    <div class="about-v">
+      本项目参考了以下开源项目，鸣谢：
+      <span class="link" id="a-dakkshin">after-effects-mcp（Dakkshin）</span>、
+      <span class="link" id="a-junkdoge">after-effects-mcp（JUNKDOGE-JOE）</span>
+    </div>
+  </div>
+
+  <div id="log"></div>
+
+  <script>
+    /* 必须在 panel.js 之前：任何未捕获错误都摊在面板上，
+       否则脚本一炸面板就"什么都不响应"，看不出原因。 */
+    window.__aemcpFatal = function (msg) {
+      var el = document.getElementById("fatal");
+      if (!el) { return; }
+      el.style.display = "block";
+      el.textContent += "⚠ " + msg + "\n";
+    };
+    window.onerror = function (m, src, line, col) {
+      window.__aemcpFatal(String(m) + "  @ " + String(src || "").split("/").pop() +
+                          ":" + line + ":" + col);
+      return false;
+    };
+  </script>
+  <script src="lib/CSInterface.js"></script>
+  <script src="js/mcp.js"></script>
+  <script src="js/panel.js"></script>
+</body>
+</html>
