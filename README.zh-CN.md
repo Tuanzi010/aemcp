@@ -4,8 +4,9 @@
 
 [![Telegram](https://img.shields.io/badge/Telegram-DimensionID-26A5E4?logo=telegram&logoColor=white)](https://t.me/DimensionID)
 [![License](https://img.shields.io/badge/License-Noncommercial-orange)](LICENSE)
+[![English](https://img.shields.io/badge/English-blue)](README.md)
 
-**143 个工具 · 适配 AE 2021～2026** · [English](README.md)
+**143 个工具 · 适配 AE 2021～2026**
 
 <details open>
 <summary>自动配置：把这个发给你的 AI</summary>

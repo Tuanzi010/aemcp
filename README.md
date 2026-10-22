@@ -4,8 +4,9 @@ Let AI drive After Effects directly — read projects, build comps, add layers, 
 
 [![Telegram](https://img.shields.io/badge/Telegram-DimensionID-26A5E4?logo=telegram&logoColor=white)](https://t.me/DimensionID)
 [![License](https://img.shields.io/badge/License-Noncommercial-orange)](LICENSE)
+[![简体中文](https://img.shields.io/badge/%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-blue)](README.zh-CN.md)
 
-**143 tools · AE 2021–2026** · [中文](README.zh-CN.md)
+**143 tools · AE 2021–2026**
 
 <details open>
 <summary>Auto-config: send this to your AI</summary>
